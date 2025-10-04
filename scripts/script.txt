@@ -1,0 +1,6 @@
+# пример
+ls
+cd "/folder/with spaces/123"
+random
+cd ../
+ls
