@@ -1,3 +1,5 @@
 test.py
 *.xml
 !temp/*.xml
+__pycache__/
+*.pyc
