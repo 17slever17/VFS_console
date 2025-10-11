@@ -1,5 +1,5 @@
 import tkinter as tk
-from state import state
+from vfs import state
 
 APP_TITLE = "VFS Emulator"
 
@@ -20,6 +20,7 @@ entry = tk.Entry(root, font=("Consolas", 12),
 entry.pack(fill=tk.X)
 entry.focus_set()
 
+
 def print_output(text, end="\n"):
     try:
         output.config(state=tk.NORMAL)
@@ -29,6 +30,7 @@ def print_output(text, end="\n"):
     except tk.TclError:
         # окно уже уничтожено
         pass
+
 
 def prompt():
     path = "/" + "/".join(state.dir_stack) if state.dir_stack else "/"

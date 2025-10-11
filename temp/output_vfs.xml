@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<vfs>
+    <dir name="level1">
+        <dir name="level2">
+            <dir name="level3">
+                <file name="deep.txt" encoding="text">Deep content</file>
+            </dir>
+        </dir>
+        <file name="root_of_level1.txt" encoding="text">Level1 text</file>
+    </dir>
+</vfs>

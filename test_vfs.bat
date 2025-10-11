@@ -1,13 +1,10 @@
 @echo off
 
-:: Тест 1: только корень VFS
-python main.py --vfs-root C:\Temp\VFS
+:: Тест 1: минимальный
+py main.py --vfs-root temp/vfs_min.xml --start-script scripts/script.txt
 
-:: Тест 2: только стартовый скрипт
-python main.py --start-script scripts/script.txt
+:: Тест 2: несколько файлов
+py main.py --vfs-root temp/vfs_files.xml --start-script scripts/script.txt
 
-:: Тест 3: оба параметра
-python main.py --vfs-root C:\Temp\VFS --start-script scripts/script.txt
-
-:: Тест 4: без параметров
-python main.py
+:: Тест 3: 3 уровня файлов и папок
+py main.py --vfs-root temp/vfs_deep.xml --start-script scripts/script.txt

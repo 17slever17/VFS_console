@@ -1,6 +1,17 @@
-# пример
+# Пустая команда
+
+
+# ls
 ls
-cd "/folder/with spaces/123"
+
+# cd
+cd level1
+
+# vfs-save
+vfs-save temp/output_vfs.xml
+
+# vfs-save без пути
+vfs-save
+
+# Неизвестная команда
 random
-cd ../
-ls

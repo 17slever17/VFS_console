@@ -2,6 +2,7 @@ import os
 from ui import print_output
 from commands import run_command_line
 
+
 def execute_start_script(path):
     if not path:
         return

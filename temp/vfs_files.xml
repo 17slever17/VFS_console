@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vfs>
+    <dir name="level1">
+        <file name="1.txt" encoding="text">1 file</file>
+        <file name="2.txt" encoding="text">2 file</file>
+    </dir>
+</vfs>
