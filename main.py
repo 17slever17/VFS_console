@@ -1,9 +1,11 @@
+import os
 import argparse
 import tkinter as tk
 from ui import root, entry, print_output, prompt
-from commands import run_command_line, load_vfs_from_xml
+from commands import run_command_line
 from script_runner import execute_start_script
-from vfs import state
+import xml.etree.ElementTree as ET
+from vfs import VFS, VFSNode, state
 
 
 def run_command(event=None):
@@ -21,7 +23,10 @@ def parse_and_start():
         "--start-script", help="Path to start script", default=None)
     args = parser.parse_args()
 
-    print_output("VFS Emulator (prototype)\nCommands: ls, cd, exit, vfs-save\n")
+    state.vfs = VFS()
+
+    print_output(
+        "VFS Emulator (prototype)\nCommands: ls, cd, exit, vfs-save\n")
     print_output(f"Debug: --vfs-root = {args.vfs_root}")
     print_output(f"Debug: --start-script = {args.start_script}\n")
 
@@ -37,6 +42,33 @@ def parse_and_start():
         execute_start_script(state.start_script)
 
     prompt()
+
+
+def load_vfs_from_xml(file_path):
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"VFS file not found: {file_path}")
+    try:
+        tree = ET.parse(file_path)
+        root_elem = tree.getroot()
+    except ET.ParseError:
+        raise ValueError(f"Invalid XML format in VFS file: {file_path}")
+
+    vfs = state.vfs
+
+    def parse_node(elem, parent_node):
+        for child in elem:
+            name = child.attrib.get("name")
+            type_ = child.tag
+            if type_ == "dir":
+                node = VFSNode(name, is_dir=True)
+                parent_node.children[name] = node
+                parse_node(child, node)
+            elif type_ == "file":
+                content = child.text or ""
+                node = VFSNode(name, is_dir=False, content=content)
+                parent_node.children[name] = node
+
+    parse_node(root_elem, vfs.root)
 
 
 if __name__ == "__main__":
