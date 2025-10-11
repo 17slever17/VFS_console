@@ -1,14 +1,35 @@
 # Пустая команда
 
-
 # ls
 ls
 
-# cd
+# ls с несуществующим путем
+ls /nonexistent
+
+# cd в существующую директорию
 cd level1
 
-# vfs-save
-vfs-save temp/output_vfs.xml
+# cd в несуществующую директорию
+cd nonexistent
+
+# Возврат в корень
+cd /
+
+cd ./level1
+
+# rev, uniq, wc
+rev test.txt
+uniq test.txt
+wc test.txt
+
+cd /
+
+# Сохраняем текущее состояние VFS в XML
+vfs-save temp/vfs_saved.xml
+
+# ls в поддиректории с файлами
+cd level1/level2
+ls
 
 # vfs-save без пути
 vfs-save

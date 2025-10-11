@@ -1,8 +1,7 @@
 import xml.etree.ElementTree as ET
-import os
 
 from ui import print_output, root
-from vfs import VFS, VFSNode, state
+from vfs import state
 
 
 def run_command_line(cmd_line):
@@ -12,98 +11,259 @@ def run_command_line(cmd_line):
 
     parts = cmd_line.strip().split(maxsplit=1)
     cmd = parts[0]
-    args = parts[1].strip() if len(parts) > 1 else []
+    args = parts[1].strip() if len(parts) > 1 else None
 
-    if cmd == "vfs-save":
-        if not args:
-            print_output("vfs-save: specify path to save XML")
-            return
-        try:
-            save_vfs_to_xml(state.vfs, args)
-            print_output(f"VFS saved to {args}")
-        except Exception as e:
-            print_output(f"Error saving VFS: {e}")
-        return
+    COMMANDS = {
+        "vfs-save": save_vfs_to_xml,
+        "ls": ls_command,
+        "cd": cd_command,
+        "rev": rev_command,
+        "uniq": uniq_command,
+        "wc": wc_command,
+        "exit": exit_command
+    }
 
-    if cmd == "ls":
-        if args:
-            args = args.split()
-            print_output(f"ls args: {' '.join(args)}")
+    func = COMMANDS.get(cmd)
+    if func:
+        if cmd == "exit":
+            func()
         else:
-            print_output("ls: no args")
-
-    elif cmd == "cd":
-        if not args:
-            return
-        elif " " in args and not (args.startswith('"') and args.endswith('"')):
-            print_output("cd: too many arguments")
-        else:
-            if not args:
-                return
-            elif args.startswith('"') and args.endswith('"'):
-                args_list = args[1:-1].strip().split('/')
-            else:
-                args_list = args.split('/')
-            if args_list:
-                if args_list[0] in ["", ".", ".."] and len(args) > 1 and args_list[1] == "":
-                    args_list.pop()
-                if args_list[0] == "":
-                    state.dir_stack.clear()
-                elif args_list[0] == ".." and state.dir_stack:
-                    state.dir_stack.pop()
-                for arg in args_list[1:]:
-                    state.dir_stack.append(arg)
-
-    elif cmd == "exit":
-        root.destroy()
-
+            func(args)
     else:
         print_output(f"Unknown command: {cmd}")
 
 
-def load_vfs_from_xml(file_path):
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"VFS file not found: {file_path}")
+def save_vfs_to_xml(file_path=None):
+    """
+    Сохраняет текущее состояние VFS (state.vfs) в XML
+    """
+    if not file_path:
+        print_output("vfs-save: specify path to save XML")
+        return
+
     try:
-        tree = ET.parse(file_path)
-        root_elem = tree.getroot()
-    except ET.ParseError:
-        raise ValueError(f"Invalid XML format in VFS file: {file_path}")
+        root_elem = ET.Element("vfs")
 
-    vfs = VFS()
+        def node_to_elem(node):
+            if node.is_dir:
+                elem = ET.Element("dir", name=node.name)
+                for child in node.children.values():
+                    elem.append(node_to_elem(child))
+            else:
+                elem = ET.Element("file", name=node.name, encoding="text")
+                elem.text = node.content
+            return elem
 
-    def parse_node(elem, parent_node):
-        for child in elem:
-            name = child.attrib.get("name")
-            type_ = child.tag
-            if type_ == "dir":
-                node = VFSNode(name, is_dir=True)
-                parent_node.children[name] = node
-                parse_node(child, node)
-            elif type_ == "file":
-                content = child.text or ""
-                node = VFSNode(name, is_dir=False, content=content)
-                parent_node.children[name] = node
+        # добавляем всех детей корня VFS
+        for child in state.vfs.root.children.values():
+            root_elem.append(node_to_elem(child))
 
-    parse_node(root_elem, vfs.root)
-    state.vfs = vfs
+        tree = ET.ElementTree(root_elem)
+        tree.write(file_path, encoding="utf-8", xml_declaration=True)
+        print_output(f"VFS saved to {file_path}")
+
+    except Exception as e:
+        print_output(f"Error saving VFS: {e}")
 
 
-def save_vfs_to_xml(vfs, file_path):
-    root_elem = ET.Element("vfs")
+def split_path(path):
+    """
+    Разбивает путь "/a/b/c" на компоненты
+    """
+    parts = [p for p in path.split('/') if p != ""]
+    return parts
 
-    def node_to_elem(node):
-        if node.is_dir:
-            elem = ET.Element("dir", name=node.name)
-            for child in node.children.values():
-                elem.append(node_to_elem(child))
+
+def normalize_path(path):
+    """
+    Преобразует путь в список компонентов относительно state.dir_stack
+    """
+    if not state.vfs:
+        return []
+    if not path:
+        return list(state.dir_stack)
+
+    p = path.strip()
+    if (p.startswith('"') and p.endswith('"')) or (p.startswith("'") and p.endswith("'")):
+        p = p[1:-1]
+
+    if p.startswith('/'):
+        comp = split_path(p)
+        base = []
+    else:
+        base = list(state.dir_stack)
+        comp = split_path(p)
+
+    for part in comp:
+        if part == "." or part == "":
+            continue
+        if part == "..":
+            if base:
+                base.pop()
         else:
-            elem = ET.Element("file", name=node.name, encoding="text")
-            elem.text = node.content
-        return elem
+            base.append(part)
+    return base
 
-    for child in vfs.root.children.values():
-        root_elem.append(node_to_elem(child))
 
-    tree = ET.ElementTree(root_elem)
-    tree.write(file_path, encoding="utf-8", xml_declaration=True)
+def resolve_node_by_path(path):
+    """
+    Возвращает VFSNode по заданному пути
+    """
+    if not state.vfs:
+        return None
+    parts = normalize_path(path)
+    node = state.vfs.get_node(parts)
+    return node
+
+
+def read_text_from_node(node):
+    """
+    Читает текст из файла-узла
+    """
+    if node is None:
+        return None, "No such file or directory"
+    if node.is_dir:
+        return None, "Is a directory"
+    content = node.content or ""
+    return content, None
+
+
+def ls_command(arg=None):
+    """
+    ls [path] — перечисляет имена в директории или выводит имя файла
+    """
+    node = resolve_node_by_path(arg)
+    if node is None:
+        print_output(
+            f"ls: cannot access '{arg or ''}': No such file or directory")
+        return
+
+    if node.is_dir:
+        if not node.children:
+            return
+        for name, child in node.children.items():
+            if child.is_dir:
+                print_output(name + "/")
+            else:
+                print_output(name)
+    else:
+        print_output(node.name)
+
+
+def cd_command(arg=None):
+    """
+    cd [path] — изменяет state.dir_stack
+    """
+    if not state.vfs:
+        print_output("cd: no VFS loaded")
+        return
+
+    if not arg or arg.strip() == "":
+        state.dir_stack = []
+        return
+
+    path = arg.strip()
+    parts = normalize_path(path)
+    node = state.vfs.get_node(parts)
+    if node is None:
+        print_output(f"cd: {arg}: No such file or directory")
+        return
+    if not node.is_dir:
+        print_output(f"cd: {arg}: Not a directory")
+        return
+
+    state.dir_stack = parts
+
+
+def rev_command(arg=None):
+    """
+    rev <file> — переворачивает символы в каждой строке и выводит их
+    """
+    if not arg:
+        print_output("rev: missing operand")
+        return
+    node = resolve_node_by_path(arg)
+    if node is None:
+        print_output(f"rev: {arg}: No such file or directory")
+        return
+    if node.is_dir:
+        print_output(f"rev: {arg}: Is a directory")
+        return
+
+    content, err = read_text_from_node(node)
+    if err:
+        print_output(f"rev: {arg}: {err}")
+        return
+
+    lines = content.splitlines()
+    for line in lines:
+        rev_line = line[::-1]
+        print_output(rev_line.strip())
+
+
+def uniq_command(arg=None):
+    """
+    uniq <file> — удаляет подряд идущие одинаковые строки и выводит результат
+    """
+    if not arg:
+        print_output("uniq: missing operand")
+        return
+    node = resolve_node_by_path(arg)
+    if node is None:
+        print_output(f"uniq: {arg}: No such file or directory")
+        return
+    if node.is_dir:
+        print_output(f"uniq: {arg}: Is a directory")
+        return
+
+    content, err = read_text_from_node(node)
+    if err:
+        print_output(f"uniq: {arg}: {err}")
+        return
+
+    lines = content.splitlines()
+    prev = None
+    for line in lines:
+        if line != prev:
+            print_output(line.strip())
+        prev = line
+
+
+def wc_command(arg=None):
+    """
+    wc <file> — печатает: lines words bytes
+    """
+    if not arg:
+        print_output("0 0 0")
+        return
+    node = resolve_node_by_path(arg)
+    if node is None:
+        print_output(f"wc: {arg}: No such file or directory")
+        return
+    if node.is_dir:
+        print_output(f"wc: {arg}: Is a directory")
+        return
+
+    content, err = read_text_from_node(node)
+    if err:
+        print_output(f"wc: {arg}: {err}")
+        return
+
+    lines_list = content.splitlines()
+    lines_count = len(lines_list)
+
+    words_count = 0
+    for ln in lines_list:
+        words_count += len(ln.split())
+
+    bytes_count = len(content.encode('utf-8'))
+
+    print_output(f"{lines_count} {words_count} {bytes_count}")
+
+
+def exit_command():
+    try:
+        root.destroy()
+    except Exception:
+        pass
+    return
