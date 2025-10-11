@@ -1,0 +1,65 @@
+# Пустая команда
+  
+
+# ls в корне
+ls
+
+# ls с несуществующим путем
+ls /doesnotexist
+
+# cd в существующую директорию
+cd level1
+
+# cd в несуществующую директорию
+cd missingdir
+
+# rev, uniq, wc на test.txt
+rev test.txt
+uniq test.txt
+wc test.txt
+
+# mv: переименование файла
+mv test.txt renamed_test.txt
+ls
+
+# mv: переименование обратно
+mv renamed_test.txt test.txt
+ls
+
+# mv: перенос файла в поддиректорию
+mv test.txt level2/
+ls level2
+
+# mv: попытка переноса в несуществующую директорию
+mv level2/file_in_level2.txt /no_such_dir/
+
+# cd в level2/level3
+cd level2/level3
+ls
+
+# mv: перенос deep.txt на уровень выше с новым именем
+mv deep.txt ../deep_moved.txt
+cd ..
+ls
+
+# mv: перенос целой папки level3 в корень
+mv /level1/level2/level3 /
+ls /
+
+# mv: попытка перемещения корня
+mv / /level1/
+
+# vfs-save без указания пути (проверка дефолтного поведения)
+vfs-save
+
+# vfs-save с указанием пути
+vfs-save temp/vfs_saved2.xml
+
+# неизвестная команда
+foobar
+
+# cd и ls для проверки состояния после всех операций
+cd /
+ls
+cd level3
+ls

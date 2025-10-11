@@ -1,5 +1,16 @@
 <?xml version='1.0' encoding='utf-8'?>
-<vfs><dir name="level1"><file name="test.txt" encoding="text">Line 1
+<vfs>
+    <dir name="level1">
+        <file name="root_of_level1.txt" encoding="text">Level1 root file</file>
+    </dir>
+    <file name="top_file.txt" encoding="text">Top level file content</file>
+    <dir name="level2">
+        <dir name="level3" />
+        <file name="file_in_level2.txt" encoding="text">Level2 file content</file>
+        <file name="test.txt" encoding="text">Line 1
             Line 2
             Line 2
-            Line 3</file><dir name="level2"><dir name="level3"><file name="deep.txt" encoding="text">This is deep content</file></dir><file name="file_in_level2.txt" encoding="text">Level2 file content</file></dir><file name="root_of_level1.txt" encoding="text">Level1 root file</file></dir><file name="top_file.txt" encoding="text">Top level file content</file></vfs>
+            Line 3</file>
+        <file name="deep_moved.txt" encoding="text">This is deep content</file>
+    </dir>
+</vfs>

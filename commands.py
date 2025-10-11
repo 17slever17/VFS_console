@@ -20,6 +20,7 @@ def run_command_line(cmd_line):
         "rev": rev_command,
         "uniq": uniq_command,
         "wc": wc_command,
+        "mv": mv_command,
         "exit": exit_command
     }
 
@@ -259,6 +260,75 @@ def wc_command(arg=None):
     bytes_count = len(content.encode('utf-8'))
 
     print_output(f"{lines_count} {words_count} {bytes_count}")
+
+
+def mv_command(arg=None):
+    """
+    mv <source> <target> — перемещает или переименовывает файл/папку внутри VFS
+    """
+    if not arg:
+        print_output("mv: missing file operand")
+        return
+
+    parts = arg.split()
+    if len(parts) < 2:
+        print_output("mv: missing destination operand")
+        return
+    elif len(parts) > 2:
+        print_output("mv: too many args")
+        return
+
+    src_path, dst_path = parts
+
+    src_node = resolve_node_by_path(src_path)
+    if src_node is None:
+        print_output(
+            f"mv: cannot stat '{src_path}': No such file or directory")
+        return
+
+    src_parts = normalize_path(src_path)
+    if not src_parts:
+        print_output("mv: cannot move root directory")
+        return
+    src_parent_path = src_parts[:-1]
+    src_name = src_parts[-1]
+    src_parent = state.vfs.get_node(src_parent_path)
+    if not src_parent or not src_parent.is_dir:
+        print_output(f"mv: failed to find parent directory for '{src_path}'")
+        return
+
+    dst_node = resolve_node_by_path(dst_path)
+    dst_parts = normalize_path(dst_path)
+
+    if dst_node:
+        if dst_node.is_dir:
+            if dst_node is src_node or src_name in dst_node.children:
+                print_output(f"mv: cannot overwrite '{dst_path}/{src_name}'")
+                return
+            dst_node.children[src_name] = src_node
+            del src_parent.children[src_name]
+            dst_path = dst_path.rstrip('/')
+            print_output(f"moved '{src_path}' -> '{dst_path}/'")
+        else:
+            print_output(
+                f"mv: target '{dst_path}' exists and is not a directory")
+        return
+
+    dst_parent_path = dst_parts[:-1]
+    dst_name = dst_parts[-1]
+    dst_parent = state.vfs.get_node(dst_parent_path)
+    if not dst_parent or not dst_parent.is_dir:
+        print_output(f"mv: cannot move to '{dst_path}': No such directory")
+        return
+
+    if dst_name in dst_parent.children:
+        print_output(f"mv: cannot overwrite existing '{dst_path}'")
+        return
+
+    del src_parent.children[src_name]
+    src_node.name = dst_name
+    dst_parent.children[dst_name] = src_node
+    print_output(f"moved '{src_path}' -> '{dst_path}'")
 
 
 def exit_command():

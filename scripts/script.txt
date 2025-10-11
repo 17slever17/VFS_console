@@ -22,17 +22,39 @@ rev test.txt
 uniq test.txt
 wc test.txt
 
-cd /
-
-# Сохраняем текущее состояние VFS в XML
-vfs-save temp/vfs_saved.xml
-
-# ls в поддиректории с файлами
-cd level1/level2
+# mv: переименование файла
+mv test.txt test_renamed.txt
 ls
+
+# mv: возврат имени обратно
+mv test_renamed.txt test.txt
+ls
+
+# mv: перенос файла в другую папку
+mv test.txt level2/
+ls level2
+
+# mv: попытка переноса в несуществующий путь
+mv level2/file_in_level2.txt /unknown/path/
+
+# cd в level2/level3
+cd level2/level3
+ls
+
+# mv: перенос deep.txt уровнем выше
+mv deep.txt ../deep_moved.txt
+cd ..
+ls
+
+# mv: перенос папки в другую папку
+mv /level1/level2 /
+ls /
 
 # vfs-save без пути
 vfs-save
 
 # Неизвестная команда
 random
+
+# Сохраняем текущее состояние VFS в XML
+vfs-save temp/vfs_saved.xml
